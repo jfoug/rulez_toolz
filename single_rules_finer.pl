@@ -2,6 +2,44 @@
 #
 # single_rules_finder.pl   Part of rulez_toolz
 #
+##############################################
+# these rules handled:
+#   preprocessor (including \xHH)
+#   AN'str'      (including \xHH)
+#   $N  ^N
+#   TN
+#   : l c C r f d u t { }
+#   @X
+#   @?C
+#   all classes except ?o ?O ?y ?Y and ?0 to ?9
+#   all number lengths except * + - a..k l m p
+################################################
+# still to do:
+#   all classes and lengths.
+#   reject rules (including keeping percentages for rules for stats)
+#   reading rules from john.conf
+#   code pages other than ISO-8859-1
+#   > < _ ' -c -8 -s -p -u -U ->N -<N -: (rejection)
+#   p P I  (hard stuff here!)
+#   [ ] DN
+#   xNM
+#   iNX
+#   oNX
+#   Q M XNMI
+#   S V R L
+#   vVNM  (V is numeric 0-9 ?)
+#   sXY s?CY
+#   !X  !?C
+#   /X  /?C
+#   =X  =?C
+#   (X  (?C
+#   )X  )?C
+#   %NX %N?C
+#   U
+#   single stuff 1 2 +
+#   proper de-duping of "[aeioua-z]" and \\ \[ \- in preprocessor
+#   \1..\9 \p0..\p9  \r
+################################################
 use String::Scanf;
 
 my $dbg=0;                      # used for debugging. NORMALLY keep this at 0 -D# on command line can also set it.
