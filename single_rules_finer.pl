@@ -37,12 +37,12 @@ foreach my $rule (reverse sort { $rulecnt{$a} <=> $rulecnt{$b} } keys %rulecnt) 
 }
 # END OF program.
 
-sub case {
+sub case { # turn john or JOHn into John
 	my $w = lc $_[0];
 	$w =~ s/\b(\w)/\U$1/g;
 	return $w;
 }
-sub toggle_case {
+sub toggle_case {  # turn jOhN into JoHn
 	my @a = split(undef, $_[0]);
 	my $w = "";
 	foreach my $c (@a) {
@@ -53,9 +53,14 @@ sub toggle_case {
 #	debug(2, "toggle $_[0] -> $w\n");
 	return $w;
 }
-sub rev {
+sub rev { # turn john into nhoj   (inlining reverse was having side effects so we function this)
 	my $w = $_[0];
 	$w = reverse $w;
+	return $w;
+}
+sub purge {  #  purge out a set of characters. purge(test123john,"0123456789"); gives testjohn
+	my ($w, $c) = @_;
+	$w =~ s/[$c]*//g;
 	return $w;
 }
 sub check_rule_word {
@@ -129,11 +134,6 @@ sub get_pos {
 	if ($p > length($w)) { return -1; }
 	return $p;
 }
-sub purge {
-	my ($w, $c) = @_;
-	$w =~ s/[$c]*//g;
-	return $w;
-}
 sub check_rule {
 	my ($inp, $crk, $rule) = @_;
 	my @rc = split(undef, $rule);
@@ -196,16 +196,16 @@ sub debug {
 }
 
 sub load_classes {
-	my $c_all;  for ($i = 1;    $i < 255; ++$i) { $c .= chr($i); }
-	my $c_8all; for ($i = 0x80; $i < 255; ++$i) { $c .= chr($i); }
+	my $c_all;  for ($i = 1;    $i < 255; ++$i) { $c_all  .= chr($i); }
+	my $c_8all; for ($i = 0x80; $i < 255; ++$i) { $c_8all .= chr($i); }
 	$cclass{z}=$c_all;
 	$cclass{b}=$c_8all;
 	$cclass{"\?"}="\?";
 	$cclass{v}="aeiouAEIOU";
 	$cclass{c}="bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ";
 	$cclass{w}=" \t";
-	$cclass{p}=".,:;'?!`\"";
-	$cclass{s}="\$%^&*()-_+=|\<>[]{}#@/~";
+	$cclass{p}="\.,:;\'\?!`\"";
+	$cclass{s}="\$%^&\*\(\)-_+=|\<\>\[\]\{\}#@/~";
 	$cclass{l}="abcdefghijklmnopqrstuvwxyz";
 	$cclass{u}=uc $cclass{l};
 	$cclass{d}="0123456789";
