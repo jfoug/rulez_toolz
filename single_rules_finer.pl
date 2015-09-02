@@ -212,15 +212,8 @@ sub load_classes {
 	$cclass{a}=$cclass{l}.$cclass{u};
 	$cclass{x}=$cclass{l}.$cclass{u}.$cclass{d};
 	#$cclass{o}=? $cclass{y}=? not sure about control and 'valid'
-	$cclass{B}=purge($cclass{z}, $cclass{b});
-	$cclass{V}=purge($cclass{z}, $cclass{v});
-	$cclass{C}=purge($cclass{z}, $cclass{c});
-	$cclass{W}=purge($cclass{z}, $cclass{w});
-	$cclass{P}=purge($cclass{z}, $cclass{p});
-	$cclass{S}=purge($cclass{z}, $cclass{s});
-	$cclass{L}=purge($cclass{z}, $cclass{l});
-	$cclass{U}=purge($cclass{z}, $cclass{u});
-	$cclass{D}=purge($cclass{z}, $cclass{d});
-	$cclass{A}=purge($cclass{z}, $cclass{a});
-	$cclass{X}=purge($cclass{z}, $cclass{x});
+	foreach my $c (split(undef,"bvcwpsludax")) {
+		$C = uc $c;
+		$cclass{$C}=purge($cclass{z}, $cclass{$c});
+	}
 }
