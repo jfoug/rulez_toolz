@@ -2,23 +2,23 @@
 #
 # single_rules_finder.pl   Part of rulez_toolz
 #
+use String::Scanf;
 
-my $dbg=0; # used for debugging. NORMALLY keep this at 0
-
-my %rulecnt=(unk=>0); # Rule and counts accumulated here.
-
-# character classes (pre define ALL of them).
-my %cclass=(); load_classes();
+my $dbg=0;                      # used for debugging. NORMALLY keep this at 0 -D# on command line can also set it.
+if (@ARGV && substr($ARGV[0], 0, 2) eq "-D") { $dbg = substr($ARGV[0], 2, 1); print}
+my %rulecnt=(unk=>0);           # Rule and counts accumulated here.
+my %cclass=(); load_classes();  # character classes. pre-define ALL of them
 
 foreach my $s (<STDIN>) {
-	my @vals = split(":", $s);
 	chomp $s;
+	my @vals = split(":", $s);
 	next if (check_rules($vals[0], $vals[1], '[:lcCutdrf{}]'));
 	next if (check_rules($vals[0], $vals[1], '@?d'));
 	next if (check_rules($vals[0], $vals[1], '@?D'));
 	next if (check_rules($vals[0], $vals[1], '@?d [lcCutdrf{}]'));
 	next if (check_rules($vals[0], $vals[1], '@?D [lcCutdrf{}]'));
 	next if (check_rules($vals[0], $vals[1], '@?d $[0-9]'));
+	next if (check_rules($vals[0], $vals[1], '@?d [lc] $[0-9]'));
 	next if (check_rules($vals[0], $vals[1], '@?d $[a-z]'));
 	next if (check_rules($vals[0], $vals[1], '@?d $[0-9]$[0-9]'));
 	next if (check_rules($vals[0], $vals[1], '@?d ^[0-9]'));
@@ -96,9 +96,27 @@ sub check_rule_word {
 			my $prg = '@'.$rc[$i];
 			if ($rc[++$i] eq "?") { $chars = $cclass{$rc[++$i]}; $prg .= $rc[$i]; }
 			else { $chars = $rc[$i]; }
-			#debug(2, "before purge $prg  $word  ");
 			$word=purge($word, $chars);
-			#debug(2, "after = $word\n");
+			next;
+		}
+		if ($c eq 'A') {
+			my $pos = get_pos($rc[++$i], $word);
+			if ($pos < 0) {next;}
+			my $delim = $rc[++$i];
+			debug(2,"delim=$delim\n");
+			my $s = "";
+			while ($rc[$i+1] ne $delim) {
+				if ($rc[$i] eq '\\' && $rc[$i+1] eq "x") {
+					# \xhh escape, replace with 'real' character
+					$i += 2;
+					my $s = $rc[++$i]; $s .= $rc[$i];
+					($rc[$i]) = sscanf($s, "%X");
+					$rc[$i] = chr($rc[$i]);
+				}
+				$s .= $rc[++$i];
+			}
+			++$i;
+			substr($word, $pos, 0) = $s;
 			next;
 		}
 	}
@@ -159,6 +177,13 @@ sub get_items {
 	# note, we do not check for some invalid ranges, like [-b] or [ab-] or [z-a]
 	for (my $i = 0; $i < length($chars_raw); ++$i) {
 		if ($ch[$i] != '-' && $ch[$i+1] != '-') {
+			# \xhh escape, replace with 'real' character
+			if ($ch[$i] eq '\\' && $ch[$i+1] eq "x") {
+				$i += 2;
+				my $s = $ch[++$i]; $s .= $ch[$i];
+				($ch[$i]) = sscanf($s, "%X");
+				$ch[$i] = chr($ch[$i]);
+			}
 			$chars .= $ch[$i];
 			next;
 		}
