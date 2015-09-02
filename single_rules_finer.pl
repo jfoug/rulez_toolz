@@ -30,7 +30,7 @@ foreach my $s (<STDIN>) {
 	$rulecnt{unk} += 1;
 }
 
-print "done checking, now printing counts found for each rule %rulecnt\n";
+print "Each rule by count\n----------------------------\n";
 # sort these, and print rules based upon max...min counts. All rules with 0 matches are NOT listed.
 foreach my $rule (reverse sort { $rulecnt{$a} <=> $rulecnt{$b} } keys %rulecnt) {
 	if ($rulecnt{$rule} != 0) { printf("rule: %-10s found $rulecnt{$rule}\n", $rule); }
