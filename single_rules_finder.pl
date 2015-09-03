@@ -13,9 +13,11 @@
 #   @X
 #   @?C
 #   all classes except ?o ?O ?y ?Y and ?0 to ?9
-#   all number lengths except * + - a..k l m p
+#   all number lengths except * + - a..k p
 #   sXY s?CY
 #   S V R L
+#   xNM iNX oNX
+#   Q M XNMI
 ################################################
 # still to do:
 #   all classes and lengths.
@@ -24,17 +26,13 @@
 #   code pages other than ISO-8859-1
 #   > < _ ' -c -8 -s -p -u -U ->N -<N -: (rejection)
 #   p P I  (hard stuff here!)
-#   xNM
-#   iNX
-#   oNX
-#   Q M XNMI
 #   vVNM  (V is numeric 0-9 ?)
-#   !X  !?C
-#   /X  /?C
-#   =X  =?C
-#   (X  (?C
-#   )X  )?C
-#   %NX %N?C
+#   !X  !?C  (rejection)
+#   /X  /?C  (rejection)
+#   =X  =?C  (rejection)
+#   (X  (?C  (rejection)
+#   )X  )?C  (rejection)
+#   %NX %N?C (rejection)
 #   U
 #   single stuff 1 2 +
 #   \1..\9 \p0..\p9  \r
@@ -47,13 +45,7 @@ my %rulecnt=();                 # Rule and counts accumulated here.
 my %rulejrejcnt=();             # number of words rejected for this rule.
 my %cclass=(); load_classes();  # character classes. pre-define ALL of them
 my %stats=();
-
-#print                'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)!@#$%^&*(-_=+[{]};:"\',<.>/?' ."\n";
-#print shift_case('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)!@#$%^&*(-_=+[{]};:"\',<.>/?')."\n";
-#print vowel_case('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)!@#$%^&*(-_=+[{]};:"\',<.>/?')."\n";
-#print keyboard_right('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)!@#$%^&*(-_=+[{]};:"\',<.>/?')."\n";
-#print keyboard_left('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)!@#$%^&*(-_=+[{]};:"\',<.>/?')."\n";
-#exit(0);
+my $M;                          # memorized word.
 
 foreach my $s (<STDIN>) {
 	chomp $s;
@@ -152,6 +144,7 @@ sub keyboard_left { # L	shift each character left, by keyboard: "Crack96" -> "Xe
 }
 sub check_rule_word {
 	my ($word, $crk, $rule) = @_;
+	$M = $word;  # memory
 	debug(2, "checking rule $rule against word $word for crack $crk\n");
 	my @rc = split(undef, $rule);
 	$stats{rule_word} += 1;
@@ -188,6 +181,42 @@ sub check_rule_word {
 			my $pos = get_pos($rc[++$i], $word);
 			if ($pos >= 0 && $pos <= length($word)) {
 				$word = substr($word, 0,$pos-1).substr($word, $pos,length($word));
+			}
+		}
+		if ($c eq 'x') { # xNM
+			my $pos = get_pos($rc[++$i], $word);
+			my $len = get_pos($rc[++$i], $word);
+			if ($pos >= 0 && $pos <= length($word)) {
+				$M = substr($word, $pos,$len);
+			}
+		}
+		if ($c eq 'i') { # iNX
+			my $pos = get_pos($rc[++$i], $word);
+			if ($pos >= 0 && $pos <= length($word)) {
+				substr($word, $pos,0) = $rc[++$i];
+			}
+		}
+		if ($c eq 'M') { # M
+			$M = $word;
+		}
+		if ($c eq 'Q') { # Q
+			if ($M eq $word) {
+				# list this was a rejected rule.
+				return 0;
+			}
+		}
+		if ($c eq 'X') { # XNMI
+			my $posM = get_pos($rc[++$i], $M);	# note using $M not $word.
+			my $len = get_pos($rc[++$i], $M);
+			my $posI = get_pos($rc[++$i], $word);
+			if ($posM >= 0 && $len > 0 && $posI >= 0) {
+				substr($word, $posI, 0) = substr($M, $posM, $len);
+			}
+		}
+		if ($c eq 'o') { # oNX
+			my $pos = get_pos($rc[++$i], $word);
+			if ($pos >= 0 && $pos <= length($word)) {
+				substr($word, $pos,1) = $rc[++$i];
 			}
 		}
 		if ($c eq 'T') { # TN  (toggle case of letter at N)
@@ -257,6 +286,8 @@ sub get_pos {
 #	elsif ($p eq '*') {} elsif ($p eq '-') {} elsif ($p eq '+') {} elsif ($p eq 'a...k') {}
 	elsif ($p eq 'z') {$p = length($w); }
 	if ($p > length($w)) { return -1; }
+	if ($p eq 'l') { my $m = length($M); return $m; }
+	if ($p eq 'm') { my $m = length($M); if ($m>0){$m-=1;} return $m; }
 	return $p;
 }
 sub check_rule {
