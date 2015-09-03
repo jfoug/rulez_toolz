@@ -14,6 +14,7 @@
 #   @?C
 #   all classes except ?o ?O ?y ?Y and ?0 to ?9
 #   all number lengths except * + - a..k l m p
+#   sXY s?CY
 ################################################
 # still to do:
 #   all classes and lengths.
@@ -28,7 +29,6 @@
 #   Q M XNMI
 #   S V R L
 #   vVNM  (V is numeric 0-9 ?)
-#   sXY s?CY
 #   !X  !?C
 #   /X  /?C
 #   =X  =?C
@@ -109,9 +109,14 @@ sub rev { # turn john into nhoj   (inlining reverse was having side effects so w
 	$w = reverse $w;
 	return $w;
 }
-sub purge {  #  purge out a set of characters. purge(test123john,"0123456789"); gives testjohn
+sub purge {  #  purge out a set of characters. purge("test123john","0123456789"); gives testjohn
 	my ($w, $c) = @_;
 	$w =~ s/[$c]*//g;
+	return $w;
+}
+sub replace_chars {
+	my ($w, $ch, $chars) = @_;
+	$w =~ s/[$chars]/$ch/g;
 	return $w;
 }
 sub check_rule_word {
@@ -136,13 +141,21 @@ sub check_rule_word {
 		if ($c eq '}') { $word = rotr($word); next; }
 		if ($c eq '[') { if (length($word)) {$word = substr($word, 1);} next; }
 		if ($c eq ']') { if (length($word)) {$word = substr($word, 0, length($word)-1);} next; }
-		if ($c eq 'D') {
+		if ($c eq 's') { #   sXY & s?CY
+			my $chars = "";
+			if ($rc[++$i] eq "?") { $chars = $cclass{ $rc[++$i]}; }
+			else { $chars = $rc[$i]; }
+			my $ch = $rc[++$i];
+			$word=replace_chars($word, $ch, $chars);
+			next;
+		}
+		if ($c eq 'D') { # DN
 			my $pos = get_pos($rc[++$i], $word);
 			if ($pos >= 0 && $pos <= length($word)) {
 				$word = substr($word, 0,$pos-1).substr($word, $pos,length($word));
 			}
 		}
-		if ($c eq 'T') {
+		if ($c eq 'T') { # TN  (toggle case of letter at N)
 			my $pos = get_pos($rc[++$i], $word);
 			if ($pos >= 0) {
 				my $c = substr($word, $pos, 1);
@@ -151,15 +164,14 @@ sub check_rule_word {
 				substr($word, $pos, 1) = $c;
 			}
 			$word = rotr($word); next; }
-		if ($c eq '@') {
+		if ($c eq '@') {  # @X & @?C
 			my $chars = "";
-			my $prg = '@'.$rc[$i];
-			if ($rc[++$i] eq "?") { $chars = $cclass{$rc[++$i]}; $prg .= $rc[$i]; }
+			if ($rc[++$i] eq "?") { $chars = $cclass{$rc[++$i]}; }
 			else { $chars = $rc[$i]; }
 			$word=purge($word, $chars);
 			next;
 		}
-		if ($c eq 'A') {
+		if ($c eq 'A') { # AN"STR"  with de-ESC in STR
 			my $pos = get_pos($rc[++$i], $word);
 			if ($pos < 0) {next;}
 			my $delim = $rc[++$i];
