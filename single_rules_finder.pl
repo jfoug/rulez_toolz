@@ -15,6 +15,7 @@
 #   all classes except ?o ?O ?y ?Y and ?0 to ?9
 #   all number lengths except * + - a..k l m p
 #   sXY s?CY
+#   S V R L
 ################################################
 # still to do:
 #   all classes and lengths.
@@ -27,7 +28,6 @@
 #   iNX
 #   oNX
 #   Q M XNMI
-#   S V R L
 #   vVNM  (V is numeric 0-9 ?)
 #   !X  !?C
 #   /X  /?C
@@ -47,6 +47,13 @@ my %rulecnt=();                 # Rule and counts accumulated here.
 my %rulejrejcnt=();             # number of words rejected for this rule.
 my %cclass=(); load_classes();  # character classes. pre-define ALL of them
 my %stats=();
+
+#print                'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)!@#$%^&*(-_=+[{]};:"\',<.>/?' ."\n";
+#print shift_case('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)!@#$%^&*(-_=+[{]};:"\',<.>/?')."\n";
+#print vowel_case('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)!@#$%^&*(-_=+[{]};:"\',<.>/?')."\n";
+#print keyboard_right('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)!@#$%^&*(-_=+[{]};:"\',<.>/?')."\n";
+#print keyboard_left('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)!@#$%^&*(-_=+[{]};:"\',<.>/?')."\n";
+#exit(0);
 
 foreach my $s (<STDIN>) {
 	chomp $s;
@@ -119,6 +126,30 @@ sub replace_chars {
 	$w =~ s/[$chars]/$ch/g;
 	return $w;
 }
+sub shift_case { # S	shift case: "Crack96" -> "cRACK(^"
+	my ($w) = @_;
+	$w =~ tr/A-Za-z0-9)!@#$%^&*(\-_=+\[{\]};:'",<.>\/?/a-zA-Z)!@#$%^&*(0-9_\-+={\[}\]:;"'<,>.?\//;
+	return $w;
+}
+sub vowel_case { # V	lowercase vowels, uppercase consonants: "Crack96" -> "CRaCK96"
+	my ($w) = @_;
+	$w =~ tr/b-z/B-Z/;
+	$w =~ tr/EIOU/eiou/;
+	return $w;
+}
+sub keyboard_right { # R	shift each character right, by keyboard: "Crack96" -> "Vtsvl07"
+	my ($w) = @_;
+	# same behavior as john1.8.0.3-jumbo. I do not think all on the far right are 'quite' right, but at least it matches.
+	# it's a very obsure rule, and not likely to have too many real world passwording implications.
+	$w =~ tr/`~1qaz!QAZ2wsx@WSX3edc#EDC4rfv$RFV5tgb%TGB6yhn^YHN7ujm&UJM8ik,*IK<9ol.(OL>0p;)P:\-[_{=+\/?/1!2wsx@WSX3edc#EDC4rfv$RFV5tgb%TGB6yhn^YHN7ujm&UJM8ik,*IK<9ol.(OL>0p;\/)P:?\-['_{"=]+}\\|\\|/;
+	return $w;
+}
+sub keyboard_left { # L	shift each character left, by keyboard: "Crack96" -> "Xeaxj85"
+	my ($w) = @_;
+	# idential output as john1.8.0.3-jumbo
+	$w =~ tr/2wsx3edc4rfv5tgb6yhn7ujm8ik,9ol.0p;\/@WSX#EDC$RFV%TGB^YHN&UJM*IK<(OL>)P:?1!\-[_{=]+}'"/1qaz2wsx3edc4rfv5tgb6yhn7ujm8ik,9ol.!QAZ@WSX#EDC$RFV%TGB^YHN&UJM*IK<(OL>`~0p)P\-[_{;:/;
+	return $w;
+}
 sub check_rule_word {
 	my ($word, $crk, $rule) = @_;
 	debug(2, "checking rule $rule against word $word for crack $crk\n");
@@ -141,6 +172,10 @@ sub check_rule_word {
 		if ($c eq '}') { $word = rotr($word); next; }
 		if ($c eq '[') { if (length($word)) {$word = substr($word, 1);} next; }
 		if ($c eq ']') { if (length($word)) {$word = substr($word, 0, length($word)-1);} next; }
+		if ($c eq 'S') { $word = shift_case($word); next; }
+		if ($c eq 'V') { $word = vowel_case($word); next; }
+		if ($c eq 'R') { $word = keyboard_right($word); next; }
+		if ($c eq 'L') { $word = keyboard_left($word); next; }
 		if ($c eq 's') { #   sXY & s?CY
 			my $chars = "";
 			if ($rc[++$i] eq "?") { $chars = $cclass{ $rc[++$i]}; }
