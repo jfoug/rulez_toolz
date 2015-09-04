@@ -58,19 +58,27 @@ foreach my $s (<STDIN>) {
 #exit(0);
 
 
-	next if (check_rules(1, $vals[0], $vals[1], '>4 [:lcCutdrf{}]'));
-	next if (check_rules(1, $vals[0], $vals[1], '@?d >4'));
-	next if (check_rules(1, $vals[0], $vals[1], '@?D >4'));
+	next if (check_rules(1, $vals[0], $vals[1], '>4'));
+	next if (check_rules(1, $vals[0], $vals[1], '>4lQ'));
+	next;
+
+	next if (check_rules(1, $vals[0], $vals[1], '@?d >4 Q'));
+
+	next if (check_rules(1, $vals[0], $vals[1], '>4'));
+	next if (check_rules(1, $vals[0], $vals[1], '@?d >4 Q'));
+	next if (check_rules(1, $vals[0], $vals[1], '@?D >4 Q'));
+	next if (check_rules(1, $vals[0], $vals[1], '>4 [lcCutdrf{}] Q'));
 	next if (check_rules(1, $vals[0], $vals[1], '@?d >4 M [lcCutdrf{}] Q'));
 	next if (check_rules(1, $vals[0], $vals[1], '@?D >4 M [lcCutdrf{}] Q'));
-	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 Az"12"'));
-	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 Az"123"'));
-	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 $[0-9]'));
+	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 Az"12" Q'));
+	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 Az"123" Q'));
+	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 $[0-9] Q'));
+	next;
 	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 M [lc] Q $[0-9]'));
 	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 $[a-z]'));
-	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 ^[0-9]'));
+	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 ^[0-9] Q'));
 	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 ^[a-z]'));
-	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 $[0-9]$[0-9]'));
+	next if (check_rules(1, $vals[0], $vals[1], '@?d >3 $[0-9]$[0-9] Q'));
 
 	# the entire ruleset from jumbo john.conf file.
 	next if (check_rules(1, $vals[0], $vals[1], ':'));
@@ -628,16 +636,20 @@ sub get_items {
 	return $chars;
 }
 sub handle_backref {
-	my ($which_group, $idx, $c, $pos, $s) = @_;
-	# find any /p[ or /p0[] before the first [ and replace with the $idx from it's group
-	# find any /0 before the first [  and replace with $c
+	my ($gnum, %idx, $c, $pos, $s) = @_;
+	# find any /p[ and step them. The step is idx{1}*gnum
+	# find any /p0[ before the next [ and replace with the $idx from it's group with current idx.
+	# we ONLY step the /p[ if it is the VERY NEXT item (it is parallel with all items prior
+	# to it).  We step an /p#[ items whenever we get to the # group.
+
+	# find any /0 before the next [  and replace with $c
 	# find any /p$idx[] and replace with the $idx from it's group
 	# find any /$idx and replace with $c
 	return $s;
 }
 # pre-processor: handles [] \xHH and \# and \p# backreferences. NOTE, recursive!
 sub check_rules {
-	my ($orig, $inp, $crk, $rules, $which_group) = @_;
+	my ($orig, $inp, $crk, $rules, $which_group, %all_idx) = @_;
 	if ($orig > 0) { $stats{check_rules} += 1; }
 	debug(4, "Checking rule(s) $rules against $inp:$crk\n");
 	my $pos = index($rules, '[');
@@ -655,12 +667,13 @@ sub check_rules {
 	$which_group += 1;
 	foreach my $c (@chars) {
 		$idx++;
-		my $s = handle_backref($which_group, $idx, $c, $pos2, $rules);
+		$all_idx{$which_group} = $idx;
+		my $s = handle_backref($which_group, $all_idx, $c, $pos2, $rules);
 		if ($s ne $rules) {debug(4, "before handle_backref($which_group, $idx, $rules)\handle_backref returned $s\n"); }
 		debug(4, "before sub=$s\n");
 		substr($s, $pos, $pos2-$pos+1) = $c;
 		debug(4, "after sub=$s\n");
-		if (check_rules(0, $inp, $crk, $s, $which_group)) { return 1; }
+		if (check_rules(0, $inp, $crk, $s, $which_group, %all_idx)) { return 1; }
 	}
 	return 0;
 }
